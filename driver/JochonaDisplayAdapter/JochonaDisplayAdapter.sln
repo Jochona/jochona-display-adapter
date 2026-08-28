@@ -1,0 +1,35 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34622.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JochonaDisplayAdapter", "JochonaDisplayAdapter.vcxproj", "{90909A15-6334-4E5F-AF6D-FD666D35D740}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Debug|ARM64.Build.0 = Debug|ARM64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Debug|x64.ActiveCfg = Debug|x64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Debug|x64.Build.0 = Debug|x64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Debug|x64.Deploy.0 = Debug|x64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Release|ARM64.ActiveCfg = Release|ARM64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Release|ARM64.Build.0 = Release|ARM64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Release|ARM64.Deploy.0 = Release|ARM64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Release|x64.ActiveCfg = Release|x64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Release|x64.Build.0 = Release|x64
+		{90909A15-6334-4E5F-AF6D-FD666D35D740}.Release|x64.Deploy.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C1F6E6D2-6E9A-4C0B-9C8E-2E4E9E9C7B3A}
+	EndGlobalSection
+EndGlobal

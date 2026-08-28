@@ -1,5 +1,5 @@
 ---
-name: Build Virtual Display Driver
+name: Build Jochona Display Adapter
 
 on:
   pull_request:
@@ -17,13 +17,30 @@ concurrency:
 
 env:
   BUILD_CONFIGURATION: Release
-  VDD_SOLUTION: Virtual Display Driver (HDR)/MttVDD.sln
+  JDA_SOLUTION: driver/JochonaDisplayAdapter/JochonaDisplayAdapter.sln
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  protocol-tests:
+    # Portable protocol/state-machine tests (src/protocol): no WDK
+    # dependency, runs on any platform.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Configure
+        run: cmake -S tests -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  build-driver:
     # The WDK driver build is validated against VS 2022; windows-latest is moving to VS 2026.
     runs-on: windows-2022
     strategy:
@@ -85,13 +102,13 @@ jobs:
           "WINDOWS_SDK_DIR=$kitsRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "WINDOWS_TARGET_PLATFORM_VERSION=$sdkVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Build VDD (${{ matrix.platform }})
+      - name: Build Jochona Display Adapter (${{ matrix.platform }})
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
 
-          $sln = "${{ env.VDD_SOLUTION }}"
-          if (-not (Test-Path $sln)) { throw "VDD solution file not found at: $sln" }
+          $sln = "${{ env.JDA_SOLUTION }}"
+          if (-not (Test-Path $sln)) { throw "Solution file not found at: $sln" }
 
           # Pick an available UMDF WDF header version on the runner.
           # Kits can be laid out either versioned:
@@ -135,16 +152,16 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $outDir = "Virtual Display Driver (HDR)\${{ matrix.platform }}\${{ env.BUILD_CONFIGURATION }}\MttVDD"
+          $outDir = "driver\JochonaDisplayAdapter\${{ matrix.platform }}\${{ env.BUILD_CONFIGURATION }}\JochonaDisplayAdapter"
           if (-not (Test-Path $outDir)) { throw "Build output directory not found: $outDir" }
 
-          $dest = "artifacts\VDD\${{ matrix.platform }}"
+          $dest = "artifacts\JochonaDisplayAdapter\${{ matrix.platform }}"
           New-Item -ItemType Directory -Path $dest -Force | Out-Null
           Copy-Item "$outDir\*" -Destination $dest -Recurse -Force
 
       - name: Upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: VDD-${{ matrix.platform }}-${{ env.BUILD_CONFIGURATION }}
-          path: artifacts/VDD/${{ matrix.platform }}/
+          name: JochonaDisplayAdapter-${{ matrix.platform }}-${{ env.BUILD_CONFIGURATION }}
+          path: artifacts/JochonaDisplayAdapter/${{ matrix.platform }}/
           if-no-files-found: error

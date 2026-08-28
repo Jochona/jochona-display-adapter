@@ -1,178 +1,94 @@
-# 🛠️ Virtual Display Driver Development Team
+# Jochona Display Adapter
 
-| 👤 Developer          | 🏷️ Role                            | 💖 Support Us                                                                                                         |
-| --------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **[MikeTheTech](https://github.com/itsmikethetech)** | Project Manager, Lead Programmer | [Patreon](https://www.patreon.com/mikethetech) :gem: / [GitHub Sponsors](https://github.com/sponsors/itsmikethetech/) 💖  |
-| **[Jocke](https://github.com/zjoasan)**       | Programmer, Concept Design  | [GitHub Sponsors ](https://github.com/sponsors/zjoasan) 💖                                                             |
+A UMDF2/IddCx indirect display driver for Windows that exposes one stable
+virtual monitor slot to [Jochona Host](https://github.com/Jochona/jochona-host)
+over a small, versioned IOCTL protocol — lease it, configure its
+mode/HDR, release it, and Windows sees a real display the whole time.
 
-:bulb: *We appreciate your support—every contribution helps us keep building amazing experiences!*
+Forked from [VirtualDrivers/Virtual-Display-Driver](https://github.com/VirtualDrivers/Virtual-Display-Driver)
+(MIT), itself derived from Microsoft's
+[IndirectDisplay sample driver](https://github.com/microsoft/Windows-driver-samples/tree/master/video/IndirectDisplay)
+(MS-PL). Full pre-fork history and both upstream licenses are preserved —
+see [`NOTICE.md`](NOTICE.md) for the complete provenance map and license
+text, and [`legacy/upstream-vdd`](legacy/upstream-vdd) for the untouched
+pre-fork source.
 
-# <img src="https://github.com/user-attachments/assets/22ff37ba-a8ea-4b65-b7b2-e7fcb09d858b" height="32" width="32"></img> Virtual Display Driver
-This project creates a _virtual monitor_ in Windows that functions just like a physical display. It is particularly useful for applications such as **streaming, virtual reality, screen recording,** and **headless servers—systems** that operate without a physical display attached. 
+## What changed from upstream
 
-Unlike traditional monitors, this virtual display supports custom resolutions and refresh rates beyond hardware limitations—offering greater flexibility for advanced setups. You can also use custom EDIDs to simulate or emulate existing hardware displays.
+The upstream driver is controlled by a `vdd_settings.xml` file, a
+registry path, and a named pipe driven by PowerShell scripts — most
+changes require a device uninstall/reinstall or a `RELOAD_DRIVER` cycle.
+Jochona Display Adapter replaces all of that with **Jochona Display
+Adapter protocol v1.0**: a narrow, versioned IOCTL surface
+(`GET_PROTOCOL_VERSION`, `ENUMERATE_SLOTS`, `LEASE_SLOT`,
+`CONFIGURE_SLOT`, `RELEASE_SLOT`, `SET_RENDER_ADAPTER_LUID`,
+`GET_WATCHDOG`, `WATCHDOG_PING`) against one stable default monitor slot
+with opaque GUID lease tokens, restore-on-release, a watchdog that reaps
+orphaned leases, and a device ACL restricted to `SYSTEM` and
+`Administrators` — see [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 
-# Check out our other Software!
+Device interface GUID: `b98f1cbd-eaec-5d98-82ab-e899d2643fa1` — this and
+the protocol version are shared byte-for-byte with Jochona Host via
+[`include/jochona/display_adapter_abi.h`](include/jochona/display_adapter_abi.h),
+which Host may duplicate verbatim with provenance.
 
-| 💻 Software | 📝 What It Does |
-| ----------- | --------------- |
-| [Linux Virtual Display Driver](https://github.com/VirtualDrivers/Linux-Virtual-Display-Driver) | Add virtual monitors to Linux for streaming, OBS, Sunshine, and desktop sharing workflows. |
-| [Virtual Audio Driver](https://github.com/VirtualDrivers/Virtual-Audio-Driver) | Add virtual speaker and microphone devices to Windows 10/11. |
-| [Virtual Driver Control](https://github.com/VirtualDrivers/Virtual-Driver-Control) | Control and configure VirtualDrivers tools from a unified app/interface. |
-| [VirtualBT](https://github.com/VirtualDrivers/VirtualBT) | A Windows Bluetooth server for simulating input devices like keyboards, mice, and gamepads. Still very early and not fully functional. |
-| **[BurnBin](https://burnb.in)** | A portable Windows file-sharing tool that turns your own PC into a temporary file drop. Share files with short-lived public links, optional return uploads, endpoint health checks, managed BurnBin links, Cloudflared fallback links, and Direct IP sharing when available. |
-| **[FireFetch](https://firefetch.app)** | A private media-saving app for building an offline library from videos, songs, playlists, torrents, and direct files. It uses tools like yt-dlp, FFmpeg, aria2c, MusicBrainz, YouTube Music metadata, and local indexing to save, queue, organize, and browse media without cloud lock-in or AI-generated recommendations. |
-| **[InfinitePIP](https://infinitepip.app)** | An always-on-top desktop picture-in-picture tool that turns live screens, app windows, and custom regions into borderless floating windows. Create multiple PiPs, pan, zoom, adjust opacity, keep captures above other windows, and even run virtual monitors from Virtual Display Driver inside floating PiP views. |
-| **[BurnFlix](https://burnflix.app)** | A local-first media server that turns movies, shows, personal videos, games, and apps into one polished, living room-ready library. It loads from an offline cache, scans in the background, enriches metadata with providers like TMDB, OMDb, TheTVDB, Steam, Libretro, and IGDB, and keeps artwork, recommendations, and library health local. |
+## Repository layout
 
-Explore more games, tools, apps, and experiments from PyroSoft: **[Visit PyroSoft.Pro](https://pyrosoft.pro)**
-
-## 🧾 Changelog (recent)
-
-- **PCI-bus based GPU selection (LUID)**: Improved multi-GPU render adapter selection by resolving an adapter **LUID from a PCI bus number** (more deterministic than name-only matching).
-- **Device/PCI-slot friendly naming**: Improved device identification / friendly naming using DeviceID and PCI slot info.
-- **GetIddCx helper tool**: Added source for the `GetIddCx` utility to query IddCx versions.
-- **EDID integration**: Added EDID integration support for custom/virtual monitor profiles.
-- **Performance optimization**: Driver performance improvements (various internal optimizations).
-
-## Building from source
-
-This repository uses a Git submodule for Microsoft Windows Driver Frameworks headers. Clone with submodules enabled:
-
-```bash
-git clone --recurse-submodules https://github.com/VirtualDrivers/Virtual-Display-Driver.git
+```
+include/jochona/        Canonical C-compatible ABI header (protocol structs, IOCTL codes, GUID)
+src/protocol/            Portable protocol/state-machine implementation (no WDF/IddCx dependency)
+tests/                    Unit tests for src/protocol (doctest; build with CMake, any platform)
+driver/JochonaDisplayAdapter/   The UMDF2/IddCx driver itself (Windows/WDK only)
+docs/                     Protocol reference and driver-signing instructions
+legacy/upstream-vdd/      Pre-fork upstream source, kept for provenance/history; not built
+Common/, ThirdParty/      Unchanged upstream build dependencies (LUID helper, WDF headers submodule)
 ```
 
-For an existing checkout, initialize the submodule before building:
+## Building
+
+Requires a Windows Driver Kit environment (see
+`.github/workflows/ci-validation.yml` for the exact toolchain: MSVC via
+`microsoft/setup-msbuild`, `windowsdriverkit11` via Chocolatey). Clone
+with submodules for the Windows-Driver-Frameworks headers:
 
 ```bash
-git submodule update --init --recursive
+git clone --recurse-submodules https://github.com/Jochona/jochona-display-adapter.git
 ```
 
-## ⬇️ Download Latest Version
+Then open `driver/JochonaDisplayAdapter/JochonaDisplayAdapter.sln` (x64
+or ARM64, Debug or Release) in Visual Studio, or build headlessly with
+`msbuild`. The `src/protocol` sources compile directly into the driver
+binary — the same code `tests/JochonaProtocolTests` exercises ships
+unmodified.
 
-- [Driver Installer (Windows 10/11)](https://github.com/VirtualDrivers/Virtual-Display-Driver/releases) - Check the [Releases](https://github.com/VirtualDrivers/Virtual-Display-Driver/releases) page for the latest version and release notes.
-- **Winget:** `winget install --id=VirtualDrivers.Virtual-Display-Driver -e`
+For local test-signing and the SignPath-based release signing plan, see
+[`docs/SIGNING.md`](docs/SIGNING.md). No release script in this
+repository installs a self-signed root certificate.
 
-> [!IMPORTANT]
-> Before using the Virtual Display Driver, ensure the following dependencies are installed:
-> - **Microsoft Visual C++ Redistributable**  
->   If you encounter the error `vcruntime140.dll not found`, download and install the latest version from the [Microsoft Visual C++ Redistributable page](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170).
->
-> **Driver update safety:** If you're about to install **major GPU/chipset driver updates**, uninstall VDD first. If you get a black screen or display priority gets scrambled, boot into **Safe Mode** and uninstall VDD to recover.
+## Testing
 
+`tests/` builds and runs independently of the WDK (portable C++17, no
+Windows dependency):
 
-## 🛠️ Installation
+```bash
+cmake -S tests -B build
+cmake --build build
+ctest --test-dir build
+```
 
-- Step 1: Download the Virtual Driver Control app.
-   - You can download the installer directly from the [Releases](https://github.com/VirtualDrivers/Virtual-Display-Driver/releases) page.
+Covers the full `SlotStateMachine` state-transition surface (lease →
+configure → release, busy/mismatch/not-found rejections, watchdog
+orphan reaping) and adversarial malformed-buffer handling at the IOCTL
+dispatch layer.
 
-- Step 2: Extract to a folder and run the app
-   - Launch the VDC.
-   - Click the Install button.
+## License
 
-- Step 3: Verify the Installation (Optional)
-   - Check if the Virtual Display Driver is correctly installed by running the following:
-   - **Device Manager:** Check "Device Manager" under "Display Adapters."
-   - **Settings:** Check display settings under system settings and see if the virtual displays show.
+MIT for Jochona-authored code, **MIT AND MS-PL** for the portions
+carried forward from the upstream IndirectDisplay sample driver lineage.
+See [`LICENSE`](LICENSE) and [`NOTICE.md`](NOTICE.md).
 
-While VDC is a good and friendly way to work with VDD, you can also do a a lot manually. Like adding or removing resolutions or enable/disable 
-functions, which is done by editing vdd_settings.xml. You should be able to locate the file at the default location: 
-```C:\VirtualDisplayDriver\vdd_settings.xml ```
+## Credits
 
-For more information about manual installation, uninstallation and "personalization", please check out the [Wiki](https://github.com/VirtualDrivers/Virtual-Display-Driver/wiki) here on 
-the project GitHub repository. If you are into tinkering, check out the Powershell scripts in [Community scripts](https://github.com/VirtualDrivers/Virtual-Display-Driver/tree/master/Community%20Scripts).
-
-## 🤔 Comparison with other IDDs
-
-The table below shows a comparison with other popular Indirect Display Driver
-projects.
-
-| Project | Iddcx version | Signed | SDR | HDR | H-Cursor | Tweakable | ARM64 Support | Custom EDID | Floating Point Refresh Rates |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| [Virtual-Display-Driver (HDR)] | 1.10 (latest) | ✅ | ✅ (8/10bit) | ✅ (10/12bit) | ✅ | ✅ | ✅¹ | ✅ | ✅ |
-| [usbmmid_v2] |  | ✅ | ✅ (8bit) |  |  |  |  |  |  |
-| [virtual-display-rs] | 1.5 |  | ✅ (8bit) |  | ✅ | ✅ |  |  |  |
-| [parsec-vdd]| 1.5 | ✅ | ✅ (8bit) |  | ✅ | ✅ |  |  |  |
-| [lddSampleDriver] | 1.2 |  | ✅ (8bit) |  |  |  |  |  |  |
-| [RustDesklddDriver] | 1.2 |  | ✅ (8bit) |  |  |  |  |  |  |
-
-¹ ARM64 Support in Windows 11 24H2 or later may require test signing be enabled.
-
-HDR Support Now Available for Windows 11 23H2+ 
-
-## ▶️ Videos and Tutorials
-
-### Installation Video
-
-[![Thumbnail24 (1)](https://github.com/user-attachments/assets/383d840c-8327-439b-a89b-84b271320371)](https://youtu.be/jN5YnHlC0fE)
-
-![Powerpoint](https://github.com/user-attachments/assets/9ac05776-36e1-4ba1-ac52-3f189dbd7730)
-
-## Troubleshooting 
-### ⚠️ Important: GPU/Chipset Driver Updates
-
-VDD can conflict with major driver updates, causing display priority issues or black screens on boot.
-
-**Before Updating Drivers**
-
-If you're planning to update GPU or chipset drivers:
-1. Uninstall VDD first (via VDC app or Device Manager)
-2. Complete your driver update
-3. Reinstall VDD
-
-**If You're Stuck at Black Screen**
-
-*Boot into Safe Mode:*
-* Force shutdown 2-3 times until Windows Recovery appears
-* Choose: Troubleshoot → Advanced Options → Startup Settings → Restart → F4 (Safe Mode)
-
-*Remove VDD:*
-* Open Device Manager in Safe Mode
-* Expand Display Adapters → Uninstall Virtual Display Driver
-* Restart normally
-
-*Quick Fix Alternative:*
-* Press `Win + P` at black screen
-* Press ↓ arrow and Enter multiple times to cycle display modes
-
-**Why This Happens**
-
-During driver updates, Windows re-enumerates display devices and may prioritize the virtual display over your physical monitor. Since VDD has no physical screen attached, this results in a black screen even though Windows is running normally.
-
-## 🤝 Sponsors
-
-<table>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/ca93d971-67dc-41dd-b945-ab4f372ea72a" /></td>
-    <td>Free code signing on Windows provided by <a href="https://signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a></td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td>Advanced 32bit IEEE Float Audio brought to you by **Lune Studios**.</td>
-  </tr>
-</table>
-
-## Acknowledgements
-
-- Special thanks to **[@ye4241](https://github.com/ye4241)** for submitting the package to Microsoft (WinGet).
-
-- Shoutout to **[MikeTheTech](https://github.com/itsmikethetech)** Project Manager, Owner, and Programmer
-- Shoutout to **[zjoasan](https://github.com/zjoasan)** Programmer. For scripts, EDID integration, and parts of installer.
-- Shoutout to **[Bud](https://github.com/bud3699)** Former Lead Programmer, has since left the project.
-- Shoutout to **[Roshkins](https://github.com/roshkins/IddSampleDriver)** for the original repo.
-- Shoutout to **[Baloukj](https://github.com/baloukj/IddSampleDriver)** for the 8-bit / 10-bit support. (Also, first to push the new Microsoft Driver public!)
-- Shoutout to **[Anakngtokwa](https://github.com/Anakngtokwa)** for assisting with finding driver sources.
-- **[Microsoft](https://github.com/microsoft/Windows-driver-samples/tree/master/video/IndirectDisplay)** Indirect Display Driver/Sample (Driver code)
-- Thanks to **[AKATrevorJay](https://github.com/akatrevorjay/edid-generator)** for the hi-res EDID.
-- Shoutout to **[LexTrack](https://github.com/lextrack/)** for the MiniScreenRecorder script. 
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=VirtualDrivers/Virtual-Display-Driver&type=Date)](https://www.star-history.com/#VirtualDrivers/Virtual-Display-Driver&Date)
-
-## Disclaimer:
-
-This software is provided "AS IS" with NO IMPLICIT OR EXPLICIT warranty. It's worth noting that while this software functioned without issues on our systems, there is no guarantee that it will not impact your computer. It operates in User Mode(Session0), which reduces the likelihood of causing system instability, such as the Blue Screen of Death. However, exercise caution when using this software.
+This project would not exist without the upstream Virtual Display Driver
+team and Microsoft's original sample driver authors — full credits in
+[`NOTICE.md`](NOTICE.md).

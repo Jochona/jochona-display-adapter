@@ -1,0 +1,82 @@
+;
+; JochonaDisplayAdapter.inf
+;
+; Jochona Display Adapter — UMDF2/IddCx indirect display driver.
+; Forked from VirtualDrivers/Virtual-Display-Driver's MttVDD.inf, itself
+; derived from Microsoft's IndirectDisplay sample driver INF. Device
+; interface GUID and hardware id are Jochona-specific; the UMDF/IddCx
+; install-section shape is unchanged from the upstream pattern.
+;
+
+[Version]
+PnpLockdown=1
+Signature="$Windows NT$"
+ClassGUID = {4D36E968-E325-11CE-BFC1-08002BE10318}
+Class = Display
+ClassVer = 2.0
+Provider=%ManufacturerName%
+CatalogFile=JochonaDisplayAdapter.cat
+DriverVer= ; set by stampinf during build
+
+[Manufacturer]
+%ManufacturerName%=Standard,NT$ARCH$
+
+[Standard.NT$ARCH$]
+%DeviceName%=JochonaDisplayAdapter_Install, Root\JochonaDisplayAdapter
+
+[SourceDisksFiles]
+JochonaDisplayAdapter.dll=1
+
+[SourceDisksNames]
+1 = %DiskName%
+
+; =================== UMDF Device ==================================
+
+[JochonaDisplayAdapter_Install.NT]
+CopyFiles=UMDriverCopy
+
+[JochonaDisplayAdapter_Install.NT.hw]
+AddReg = JochonaDisplayAdapter_HardwareDeviceSettings
+
+[JochonaDisplayAdapter_HardwareDeviceSettings]
+HKR,, "UpperFilters",  %REG_MULTI_SZ%, "IndirectKmd"
+HKR, "WUDF", "DeviceGroupId", %REG_SZ%, "JochonaDisplayAdapterGroup"
+
+[JochonaDisplayAdapter_Install.NT.Services]
+AddService=WUDFRd,0x000001fa,WUDFRD_ServiceInstall
+
+[JochonaDisplayAdapter_Install.NT.Wdf]
+UmdfService=JochonaDisplayAdapter,JochonaDisplayAdapter_Install
+UmdfServiceOrder=JochonaDisplayAdapter
+UmdfKernelModeClientPolicy = AllowKernelModeClients
+
+[JochonaDisplayAdapter_Install]
+UmdfLibraryVersion=$UMDFVERSION$
+ServiceBinary=%12%\UMDF\JochonaDisplayAdapter.dll
+UmdfExtensions = IddCx0102
+
+[WUDFRD_ServiceInstall]
+DisplayName = %WudfRdDisplayName%
+ServiceType = 1
+StartType = 3
+ErrorControl = 1
+ServiceBinary = %12%\WUDFRd.sys
+
+[DestinationDirs]
+UMDriverCopy=12,UMDF
+
+[UMDriverCopy]
+JochonaDisplayAdapter.dll
+
+; =================== Generic ==================================
+
+[Strings]
+ManufacturerName="Jochona"
+DiskName = "Jochona Display Adapter Installation Disk"
+WudfRdDisplayName="Windows Driver Foundation - User-mode Driver Framework Reflector"
+DeviceName="Jochona Display Adapter"
+
+REG_MULTI_SZ  = 0x00010000
+REG_SZ        = 0x00000000
+REG_EXPAND_SZ = 0x00020000
+REG_DWORD     = 0x00010001
