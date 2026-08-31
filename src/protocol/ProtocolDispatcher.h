@@ -54,9 +54,3 @@ DispatchResult Dispatch(
     const SetRenderAdapterLuidFn& setRenderAdapterLuid = {});
 
 } // namespace jochona::protocol
-    size_t inputLength,
-    void* outputBuffer,
-    size_t outputLength,
-    SlotStateMachine& stateMachine);
-
-} // namespace jochona::protocol
