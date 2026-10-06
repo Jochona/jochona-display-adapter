@@ -13,6 +13,10 @@ see [`NOTICE.md`](NOTICE.md) for the complete provenance map and license
 text, and [`legacy/upstream-vdd`](legacy/upstream-vdd) for the untouched
 pre-fork source.
 
+For an end-to-end Windows Host + Bazzite Client setup that puts this
+driver in context, see the
+[constellation repo's getting-started walkthrough](https://github.com/Jochona/jochona-constellation#getting-started-windows-host--bazzite-client).
+
 ## What changed from upstream
 
 The upstream driver is controlled by a `vdd_settings.xml` file, a
@@ -90,7 +94,8 @@ dispatch layer.
 
 MIT for Jochona-authored code, **MIT AND MS-PL** for the portions
 carried forward from the upstream IndirectDisplay sample driver lineage.
-See [`LICENSE`](LICENSE) and [`NOTICE.md`](NOTICE.md).
+See [`LICENSE`](LICENSE) and [`NOTICE.md`](NOTICE.md). See
+[`CHANGELOG.md`](CHANGELOG.md) for release history.
 
 ## Credits
 
