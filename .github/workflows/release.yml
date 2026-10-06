@@ -1,0 +1,95 @@
+---
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version string used in artifact filenames (no 'v' prefix)"
+        required: false
+        default: '0.0.0-dev'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, ARM64]
+    uses: ./.github/workflows/build-driver.yml
+    with:
+      platform: ${{ matrix.platform }}
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Resolve version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Download x64 artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: JochonaDisplayAdapter-x64-Release
+          path: dist/x64
+
+      - name: Download ARM64 artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: JochonaDisplayAdapter-ARM64-Release
+          path: dist/ARM64
+
+      - name: Package zips
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          for platform in x64 ARM64; do
+            cp docs/driver-install-snippet.md "dist/${platform}/INSTALL.md"
+            (cd "dist/${platform}" && zip -r "../../out/JochonaDisplayAdapter-${platform}-v${VERSION}.zip" .)
+          done
+          (cd out && sha256sum ./*.zip > SHA256SUMS)
+
+      - name: Upload build for inspection
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: JochonaDisplayAdapter-release-v${{ env.VERSION }}
+          path: out/
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64  # v3.0.3
+        with:
+          files: |
+            out/*.zip
+            out/SHA256SUMS
+          body: |
+            **UNSIGNED test build — not production-ready.**
+
+            This driver is not code-signed or WHQL-signed. SignPath
+            Foundation enrollment is not yet complete; see
+            [`docs/SIGNING.md`](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/SIGNING.md)
+            for full signing status and the SignPath roadmap.
+
+            To install on a test machine, enable test-signing mode
+            (`bcdedit /set testsigning on` + reboot) and run
+            `pnputil /add-driver JochonaDisplayAdapter.inf /install`
+            from the extracted zip. See `INSTALL.md` inside each zip for
+            the full steps.
