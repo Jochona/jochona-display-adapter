@@ -36,9 +36,25 @@ driver-callback architecture itself is unchanged. See
   both architectures on every push/PR; `.github/workflows/release.yml`
   builds tagged (`v*`) or manually dispatched releases for both
   architectures, packages per-architecture zips (driver DLL, stamped
-  `.inf`, unsigned `.cat`, with `docs/driver-install-snippet.md` bundled
-  as `INSTALL.md`) alongside a `SHA256SUMS` file, and publishes them as
-  an unsigned GitHub Release on tag pushes. See
+  `.inf`, unsigned `.cat`, `docs/driver-install-snippet.md` bundled as
+  `INSTALL.md`, and the `sign-and-install.ps1`/`uninstall.ps1` helper
+  scripts) alongside a `SHA256SUMS` file, and publishes them as a
+  **pre-release** GitHub Release on tag pushes. See
   [`docs/SIGNING.md`](docs/SIGNING.md) for current signing status
   (local test-signing only; SignPath Foundation enrollment not yet
   complete).
+
+### Fixed
+
+- **Install instructions corrected before first publish**: the original
+  `INSTALL.md` claimed `bcdedit /set testsigning on` plus
+  `pnputil /add-driver JochonaDisplayAdapter.inf /install` was enough to
+  install this driver. Neither claim held up: test-signing mode alone
+  does not sign the unsigned `.dll`/`.cat` this build ships, and
+  `JochonaDisplayAdapter.inf` declares a software/root-enumerated device
+  (`Root\JochonaDisplayAdapter`) that `pnputil /add-driver` never
+  creates a device node for — PnPUtil has no command that does.
+  `docs/driver-install-snippet.md`/`SIGNING.md` now document (and
+  `sign-and-install.ps1`/`uninstall.ps1` automate) the full self-signing
+  procedure and the `devcon install` step the device node actually
+  needs.

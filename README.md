@@ -66,13 +66,19 @@ binary — the same code `tests/JochonaProtocolTests` exercises ships
 unmodified.
 
 For local test-signing and the SignPath-based release signing plan, see
-[`docs/SIGNING.md`](docs/SIGNING.md). No release script in this
-repository installs a self-signed root certificate.
+[`docs/SIGNING.md`](docs/SIGNING.md). The CI/release pipeline itself
+never signs anything or installs a certificate; the `sign-and-install.ps1`
+script shipped in each release zip does, but only on the machine that
+runs it and only when a user explicitly chooses to.
 
-Tagged releases (`v*`) publish unsigned per-architecture build zips via
-`.github/workflows/release.yml` on the
-[Releases page](https://github.com/Jochona/jochona-display-adapter/releases) —
-see `docs/SIGNING.md` before installing one.
+Tagged releases (`v*`) publish **unsigned, developer/test-build**
+per-architecture zips via `.github/workflows/release.yml` on the
+[Releases page](https://github.com/Jochona/jochona-display-adapter/releases),
+each containing the driver, `INSTALL.md`, and `sign-and-install.ps1`/
+`uninstall.ps1` to self-sign and install locally — read
+[`docs/SIGNING.md`](docs/SIGNING.md) before installing one; these
+releases are marked pre-release and are not production-ready (no WHQL
+or SignPath signature yet).
 
 ## Testing
 
