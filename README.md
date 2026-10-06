@@ -67,18 +67,19 @@ unmodified.
 
 For local test-signing and the SignPath-based release signing plan, see
 [`docs/SIGNING.md`](docs/SIGNING.md). The CI/release pipeline itself
-never signs anything or installs a certificate; the `sign-and-install.ps1`
-script shipped in each release zip does, but only on the machine that
-runs it and only when a user explicitly chooses to.
+never signs anything or installs a certificate, and no script in this
+repository automates self-signing or trust-store changes — the manual
+procedure in `docs/SIGNING.md` runs only on a developer's own machine,
+only when they choose to.
 
 Tagged releases (`v*`) publish **unsigned, developer/test-build**
 per-architecture zips via `.github/workflows/release.yml` on the
 [Releases page](https://github.com/Jochona/jochona-display-adapter/releases),
-each containing the driver, `INSTALL.md`, and `sign-and-install.ps1`/
-`uninstall.ps1` to self-sign and install locally — read
-[`docs/SIGNING.md`](docs/SIGNING.md) before installing one; these
-releases are marked pre-release and are not production-ready (no WHQL
-or SignPath signature yet).
+each containing the driver and `INSTALL.md` with the manual signing and
+install procedure — read [`docs/SIGNING.md`](docs/SIGNING.md) before
+attempting it; these releases are marked pre-release, have not been
+exercised on Windows by the Jochona team in CI, and are not
+production-ready (no WHQL or SignPath signature yet).
 
 ## Testing
 

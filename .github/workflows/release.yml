@@ -62,8 +62,6 @@ jobs:
           mkdir -p out
           for platform in x64 ARM64; do
             cp docs/driver-install-snippet.md "dist/${platform}/INSTALL.md"
-            cp docs/sign-and-install.ps1 "dist/${platform}/sign-and-install.ps1"
-            cp docs/uninstall.ps1 "dist/${platform}/uninstall.ps1"
             (cd "dist/${platform}" && zip -r "../../out/JochonaDisplayAdapter-${platform}-v${VERSION}.zip" .)
           done
           (cd out && sha256sum ./*.zip > SHA256SUMS)
@@ -84,20 +82,20 @@ jobs:
             out/SHA256SUMS
           prerelease: true
           body: |
-            **UNSIGNED developer/test build — not ready to install as-is.**
+            **UNSIGNED developer/test build — not an end-user installer.**
 
-            This driver is not code-signed or WHQL-signed. SignPath
-            Foundation enrollment is not yet complete; see
+            This driver is not code-signed or WHQL-signed, and the manual
+            signing procedure below has not been exercised on Windows by
+            the Jochona team in CI. SignPath Foundation enrollment is not
+            yet complete; see
             [`docs/SIGNING.md`](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/SIGNING.md)
             for full signing status and the SignPath roadmap.
 
-            Enabling test-signing mode alone does **not** make Windows
-            accept the unsigned `.dll`/`.cat` in this zip, and
-            `pnputil /add-driver ... /install` does **not** create this
-            driver's device node (it only updates devices that already
-            exist). Each zip bundles `sign-and-install.ps1`, which
-            self-signs the build on your machine and creates the device
-            node, plus `uninstall.ps1` to remove everything again. See
-            `INSTALL.md` inside the zip (or
+            Installing this build requires manually creating and trusting
+            a local test-signing certificate, signing the driver `.dll`,
+            regenerating and signing its catalog, and installing it with
+            `devcon install` (`pnputil /add-driver ... /install` does not
+            create this driver's root-enumerated device node). No script
+            automates this — see `INSTALL.md` inside the zip (or
             [`docs/driver-install-snippet.md`](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/driver-install-snippet.md))
-            for the full procedure.
+            for the full manual procedure.
