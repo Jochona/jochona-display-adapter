@@ -11,6 +11,7 @@ Copyright (c) 2026 Jochona project contributors
 
 #include "Acl.h"
 #include "Trace.h"
+#include "Acl.tmh"
 
 namespace Jochona
 {

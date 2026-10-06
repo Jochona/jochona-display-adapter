@@ -9,6 +9,16 @@
 
 using namespace jochona::protocol;
 
+
+// GCC refuses to bind a reference directly to a field of a packed struct
+// (the address may be misaligned). Route each packed-field read through
+// this by-value helper before handing it to doctest's CHECK/REQUIRE macros.
+template <typename T>
+T val(T v)
+{
+    return v;
+}
+
 namespace {
 
 JochonaProtocolVersion V1()
@@ -66,8 +76,8 @@ TEST_CASE("GetProtocolVersion reports v1.0 and the contract GUID")
     TestMachine harness;
     JochonaGetProtocolVersionOut out{};
     REQUIRE(harness.machine().GetProtocolVersion(out) == JOCHONA_STATUS_SUCCESS);
-    CHECK(out.Version.Major == 1);
-    CHECK(out.Version.Minor == 0);
+    CHECK(val(out.Version.Major) == 1);
+    CHECK(val(out.Version.Minor) == 0);
     static constexpr uint8_t kExpected[16] = JOCHONA_DISPLAY_ADAPTER_INTERFACE_GUID_BYTES;
     CHECK(std::equal(std::begin(kExpected), std::end(kExpected), out.InterfaceGuid.Bytes));
 }
@@ -80,12 +90,12 @@ TEST_CASE("A freshly constructed machine enumerates exactly one free default slo
     REQUIRE(harness.machine().Enumerate(V1(), slots, JOCHONA_PROTOCOL_V1_MAX_SLOTS, count) ==
             JOCHONA_STATUS_SUCCESS);
     REQUIRE(count == 1);
-    CHECK(slots[0].SlotId == 0);
-    CHECK(slots[0].State == JochonaSlotStateFree);
+    CHECK(val(slots[0].SlotId) == 0);
+    CHECK(val(slots[0].State) == JochonaSlotStateFree);
     CHECK(IsZero(slots[0].OwnerId));
     CHECK(IsZero(slots[0].LeaseToken));
-    CHECK(slots[0].Mode.Width == kDefaultBaselineMode.Width);
-    CHECK(slots[0].Mode.Height == kDefaultBaselineMode.Height);
+    CHECK(val(slots[0].Mode.Width) == kDefaultBaselineMode.Width);
+    CHECK(val(slots[0].Mode.Height) == kDefaultBaselineMode.Height);
 }
 
 TEST_CASE("Full lease -> configure -> release lifecycle transitions state and restores baseline")
@@ -102,36 +112,36 @@ TEST_CASE("Full lease -> configure -> release lifecycle transitions state and re
         JochonaSlotInfo slots[1];
         uint32_t count = 0;
         REQUIRE(sm.Enumerate(V1(), slots, 1, count) == JOCHONA_STATUS_SUCCESS);
-        CHECK(slots[0].State == JochonaSlotStateLeased);
+        CHECK(val(slots[0].State) == JochonaSlotStateLeased);
         CHECK(Equals(slots[0].OwnerId, owner));
         CHECK(Equals(slots[0].LeaseToken, token));
     }
 
     JochonaSlotMode applied{};
     REQUIRE(sm.Configure(V1(), 0, token, Mode1440p(), applied) == JOCHONA_STATUS_SUCCESS);
-    CHECK(applied.Width == 2560);
+    CHECK(val(applied.Width) == 2560);
     CHECK(applied.HdrEnabled == 1);
 
     {
         JochonaSlotInfo slots[1];
         uint32_t count = 0;
         REQUIRE(sm.Enumerate(V1(), slots, 1, count) == JOCHONA_STATUS_SUCCESS);
-        CHECK(slots[0].State == JochonaSlotStateConfigured);
-        CHECK(slots[0].Mode.Width == 2560);
+        CHECK(val(slots[0].State) == JochonaSlotStateConfigured);
+        CHECK(val(slots[0].Mode.Width) == 2560);
     }
 
     JochonaSlotMode restored{};
     REQUIRE(sm.Release(V1(), 0, token, restored) == JOCHONA_STATUS_SUCCESS);
-    CHECK(restored.Width == kDefaultBaselineMode.Width);
+    CHECK(val(restored.Width) == kDefaultBaselineMode.Width);
     CHECK(restored.HdrEnabled == kDefaultBaselineMode.HdrEnabled);
 
     JochonaSlotInfo slots[1];
     uint32_t count = 0;
     REQUIRE(sm.Enumerate(V1(), slots, 1, count) == JOCHONA_STATUS_SUCCESS);
-    CHECK(slots[0].State == JochonaSlotStateFree);
+    CHECK(val(slots[0].State) == JochonaSlotStateFree);
     CHECK(IsZero(slots[0].OwnerId));
     CHECK(IsZero(slots[0].LeaseToken));
-    CHECK(slots[0].Mode.Width == kDefaultBaselineMode.Width);
+    CHECK(val(slots[0].Mode.Width) == kDefaultBaselineMode.Width);
 }
 
 TEST_CASE("Leasing an already-leased slot is rejected as busy, without disturbing the holder")
@@ -169,7 +179,7 @@ TEST_CASE("Configure/Release with the wrong lease token is rejected and state is
     JochonaSlotInfo slots[1];
     uint32_t count = 0;
     REQUIRE(sm.Enumerate(V1(), slots, 1, count) == JOCHONA_STATUS_SUCCESS);
-    CHECK(slots[0].State == JochonaSlotStateLeased);
+    CHECK(val(slots[0].State) == JochonaSlotStateLeased);
     CHECK(Equals(slots[0].LeaseToken, token));
 }
 
@@ -241,7 +251,7 @@ TEST_CASE("GetWatchdog reflects lease activity and elapsed time since the last p
     JochonaGetWatchdogOut before{};
     REQUIRE(sm.GetWatchdog(V1(), 0, before) == JOCHONA_STATUS_SUCCESS);
     CHECK(before.LeaseActive == 0);
-    CHECK(before.MillisecondsSinceLastPing == UINT32_MAX);
+    CHECK(val(before.MillisecondsSinceLastPing) == UINT32_MAX);
 
     JochonaGuid128 token{};
     REQUIRE(sm.Lease(V1(), 0, Owner(1), token) == JOCHONA_STATUS_SUCCESS);
@@ -250,12 +260,12 @@ TEST_CASE("GetWatchdog reflects lease activity and elapsed time since the last p
     JochonaGetWatchdogOut afterLease{};
     REQUIRE(sm.GetWatchdog(V1(), 0, afterLease) == JOCHONA_STATUS_SUCCESS);
     CHECK(afterLease.LeaseActive == 1);
-    CHECK(afterLease.MillisecondsSinceLastPing == 1500);
+    CHECK(val(afterLease.MillisecondsSinceLastPing) == 1500);
 
     REQUIRE(sm.Ping(V1(), 0, token) == JOCHONA_STATUS_SUCCESS);
     JochonaGetWatchdogOut afterPing{};
     REQUIRE(sm.GetWatchdog(V1(), 0, afterPing) == JOCHONA_STATUS_SUCCESS);
-    CHECK(afterPing.MillisecondsSinceLastPing == 0);
+    CHECK(val(afterPing.MillisecondsSinceLastPing) == 0);
 }
 
 TEST_CASE("ReapOrphans force-releases a lease that has been silent past the watchdog timeout")
@@ -281,7 +291,7 @@ TEST_CASE("ReapOrphans force-releases a lease that has been silent past the watc
     JochonaSlotInfo slots[1];
     uint32_t count = 0;
     REQUIRE(sm.Enumerate(V1(), slots, 1, count) == JOCHONA_STATUS_SUCCESS);
-    CHECK(slots[0].State == JochonaSlotStateFree);
+    CHECK(val(slots[0].State) == JochonaSlotStateFree);
 }
 
 TEST_CASE("A watchdog ping resets the orphan timer and prevents reaping")
@@ -299,7 +309,7 @@ TEST_CASE("A watchdog ping resets the orphan timer and prevents reaping")
     JochonaSlotInfo slots[1];
     uint32_t count = 0;
     REQUIRE(sm.Enumerate(V1(), slots, 1, count) == JOCHONA_STATUS_SUCCESS);
-    CHECK(slots[0].State == JochonaSlotStateLeased);
+    CHECK(val(slots[0].State) == JochonaSlotStateLeased);
 }
 
 TEST_CASE("After a reaped lease, a new owner can lease the slot again")

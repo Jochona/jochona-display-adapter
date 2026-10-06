@@ -354,23 +354,6 @@ void SwapChainProcessor::RunCore()
 
 } // namespace Jochona
 
-//
-// ===================== WDF context wrapper =====================
-//
-
-struct IndirectDeviceContextWrapper
-{
-    Jochona::IndirectDeviceContext* pContext;
-
-    void Cleanup()
-    {
-        delete pContext;
-        pContext = nullptr;
-    }
-};
-
-WDF_DECLARE_CONTEXT_TYPE(IndirectDeviceContextWrapper);
-
 namespace Jochona
 {
 
@@ -670,14 +653,13 @@ JochonaStatus IndirectDeviceContext::SetRenderAdapterLuid(LUID luid)
 
     if (m_Adapter != nullptr && IDD_IS_FUNCTION_AVAILABLE(IddCxAdapterSetRenderAdapter))
     {
+        // IddCxAdapterSetRenderAdapter returns VOID: the OS applies the
+        // preference best-effort (it may fall back to a different adapter,
+        // e.g. if the preferred one is PnP-stopped) and reports the actual
+        // adapter used later via EvtIddCxMonitorAssignSwapChain.
         IDARG_IN_ADAPTERSETRENDERADAPTER arg{};
         arg.PreferredRenderAdapter = luid;
-        NTSTATUS status = IddCxAdapterSetRenderAdapter(m_Adapter, &arg);
-        if (!NT_SUCCESS(status))
-        {
-            JdaLogf("e", "IddCxAdapterSetRenderAdapter failed: 0x%08lx", status);
-            return JOCHONA_STATUS_INVALID_PARAMETER;
-        }
+        IddCxAdapterSetRenderAdapter(m_Adapter, &arg);
     }
 
     std::lock_guard<std::mutex> lock(m_RenderAdapterMutex);

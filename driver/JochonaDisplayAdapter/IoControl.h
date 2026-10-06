@@ -26,8 +26,8 @@ namespace Jochona
 // Registered as IDD_CX_CLIENT_CONFIG::EvtIddCxDeviceIoControl in DeviceAdd.
 // This is the ONLY place the driver's 8 IOCTL_JOCHONA_* codes are handled;
 // every other IOCTL code is rejected with STATUS_INVALID_DEVICE_REQUEST.
-NTSTATUS EvtJochonaDeviceIoControl(
-    _In_ IDDCX_ADAPTER AdapterObject,
+VOID EvtJochonaDeviceIoControl(
+    _In_ WDFDEVICE Device,
     _In_ WDFREQUEST Request,
     _In_ size_t OutputBufferLength,
     _In_ size_t InputBufferLength,

@@ -19,6 +19,15 @@ Copyright (c) 2026 Jochona project contributors
 
 #pragma once
 
+// wdf.h depends on windows.h/wudfwdm.h having already configured the UMDF
+// build environment (SAL macros, base types, calling conventions) — the
+// same order Driver.h uses. Including wdf.h alone here (as this header
+// used to) left that environment unconfigured, which the compiler masked
+// as a wall of unrelated "unknown override specifier" errors deep inside
+// <winioctl.h> instead of a clear missing-include diagnostic.
+#define NOMINMAX
+#include <windows.h>
+#include <wudfwdm.h>
 #include <wdf.h>
 
 namespace Jochona

@@ -12,6 +12,7 @@ Copyright (c) 2026 Jochona project contributors
 #include "IoControl.h"
 
 #include "ProtocolDispatcher.h"
+#include "IoControl.tmh"
 
 using jochona::protocol::Dispatch;
 using jochona::protocol::DispatchResult;
@@ -50,20 +51,20 @@ NTSTATUS JochonaStatusToNtStatus(JochonaStatus status)
     }
 }
 
-NTSTATUS EvtJochonaDeviceIoControl(
-    IDDCX_ADAPTER AdapterObject,
+VOID EvtJochonaDeviceIoControl(
+    WDFDEVICE Device,
     WDFREQUEST Request,
     size_t OutputBufferLength,
     size_t InputBufferLength,
     ULONG IoControlCode)
 {
-    auto* wrapper = WdfObjectGet_IndirectDeviceContextWrapper(AdapterObject);
+    auto* wrapper = WdfObjectGet_IndirectDeviceContextWrapper(Device);
     if (wrapper == nullptr || wrapper->pContext == nullptr)
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_IOCTL,
             "%!FUNC! adapter context missing for IoControlCode=0x%x", IoControlCode);
         WdfRequestCompleteWithInformation(Request, STATUS_DEVICE_NOT_READY, 0);
-        return STATUS_DEVICE_NOT_READY;
+        return;
     }
     IndirectDeviceContext* context = wrapper->pContext;
 
@@ -120,7 +121,7 @@ NTSTATUS EvtJochonaDeviceIoControl(
         IoControlCode, static_cast<int>(result.status), result.bytesWritten);
 
     WdfRequestCompleteWithInformation(Request, ntStatus, result.bytesWritten);
-    return ntStatus;
+    return;
 }
 
 } // namespace Jochona

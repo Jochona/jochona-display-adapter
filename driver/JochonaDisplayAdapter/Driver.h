@@ -210,3 +210,21 @@ private:
 std::vector<BYTE> BuildBaselineEdid();
 
 } // namespace Jochona
+
+// WDF context wrapper bridging IDDCX_ADAPTER/IDDCX_MONITOR/WDFDEVICE
+// objects to the Jochona IndirectDeviceContext instance. Declared here
+// (not in Driver.cpp) so every translation unit that needs
+// WdfObjectGet_IndirectDeviceContextWrapper() — Driver.cpp, IoControl.cpp —
+// sees the same WDF_DECLARE_CONTEXT_TYPE-generated accessor.
+struct IndirectDeviceContextWrapper
+{
+    Jochona::IndirectDeviceContext* pContext;
+
+    void Cleanup()
+    {
+        delete pContext;
+        pContext = nullptr;
+    }
+};
+
+WDF_DECLARE_CONTEXT_TYPE(IndirectDeviceContextWrapper);
