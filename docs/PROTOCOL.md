@@ -23,11 +23,14 @@ compile-time or link-time dependency on this repository.
 
 All eight IOCTLs are `METHOD_BUFFERED`, dispatched through
 `EvtIddCxDeviceIoControl` (see
-`driver/JochonaDisplayAdapter/IoControl.cpp`). The device object's SDDL
-(`driver/JochonaDisplayAdapter/Acl.cpp`) restricts open access to
-`SYSTEM` and members of the local `Administrators` group; callers outside
-those principals cannot open a handle to the device at all, so IOCTL
-access bits themselves are `FILE_ANY_ACCESS`.
+`driver/JochonaDisplayAdapter/IoControl.cpp`). The device object's SDDL,
+set via the `HKR,,Security` entry in
+`driver/JochonaDisplayAdapter/JochonaDisplayAdapter.inf` (UMDF drivers
+cannot assign it at runtime — `WdfDeviceInitAssignSDDLString` is
+KMDF-only), restricts open access to `SYSTEM` and members of the local
+`Administrators` group; callers outside those principals cannot open a
+handle to the device at all, so IOCTL access bits themselves are
+`FILE_ANY_ACCESS`.
 
 ## IOCTLs
 

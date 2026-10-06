@@ -8,9 +8,12 @@ Adapter protocol v1.0 (see `../../docs/PROTOCOL.md`).
 - `IoControl.cpp`/`IoControl.h` — `EvtIddCxDeviceIoControl`; the WDF
   boundary that marshals buffers into `jochona::protocol::Dispatch`
   (see `../../src/protocol`).
-- `Acl.cpp`/`Acl.h` — SYSTEM + Administrators device ACL.
+- `JochonaDisplayAdapter.inf` — UMDF2/IddCx driver install package,
+  including the SYSTEM + Administrators device ACL (`HKR,,Security`
+  under `JochonaDisplayAdapter_HardwareDeviceSettings`; WDF's
+  `WdfDeviceInitAssignSDDLString` is KMDF-only, so UMDF drivers must set
+  this via the INF instead of at runtime).
 - `Trace.h` — WPP tracing configuration.
-- `JochonaDisplayAdapter.inf` — UMDF2/IddCx driver install package.
 
 Build with `JochonaDisplayAdapter.sln` under a Windows Driver Kit
 environment (see `../../docs/SIGNING.md` for test-signing setup). The

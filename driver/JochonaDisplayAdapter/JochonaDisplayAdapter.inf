@@ -41,6 +41,10 @@ AddReg = JochonaDisplayAdapter_HardwareDeviceSettings
 [JochonaDisplayAdapter_HardwareDeviceSettings]
 HKR,, "UpperFilters",  %REG_MULTI_SZ%, "IndirectKmd"
 HKR, "WUDF", "DeviceGroupId", %REG_SZ%, "JochonaDisplayAdapterGroup"
+; SYSTEM + built-in Administrators only — WdfDeviceInitAssignSDDLString is
+; KMDF-only, so this is the UMDF-appropriate place to enforce the device
+; ACL. Keep in sync with docs/PROTOCOL.md.
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GA;;;BA)"
 
 [JochonaDisplayAdapter_Install.NT.Services]
 AddService=WUDFRd,0x000001fa,WUDFRD_ServiceInstall

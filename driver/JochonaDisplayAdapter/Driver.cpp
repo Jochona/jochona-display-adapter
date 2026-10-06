@@ -29,7 +29,6 @@ Copyright (c) 2026 Jochona project contributors
 #include <shlobj.h>
 #include <knownfolders.h>
 
-#include "Acl.h"
 #include "IoControl.h"
 #include "SlotStateMachine.h"
 
@@ -867,14 +866,13 @@ NTSTATUS JochonaDeviceAdd(WDFDRIVER Driver, PWDFDEVICE_INIT pDeviceInit)
 {
     UNREFERENCED_PARAMETER(Driver);
 
-    // ACL first: SYSTEM + Administrators only, applied before the device
-    // object is created so there is no window where a broader default
-    // ACL is momentarily in effect.
-    NTSTATUS status = ApplyDeviceAcl(pDeviceInit);
-    if (!NT_SUCCESS(status))
-    {
-        return status;
-    }
+    // Device ACL (SYSTEM + Administrators only): WdfDeviceInitAssignSDDLString
+    // is KMDF-only (not available to UMDF drivers — see
+    // WdfDeviceInitAssignSDDLString's "Applies to KMDF only" requirement),
+    // so the security descriptor is enforced via the INF's
+    // JochonaDisplayAdapter_HardwareDeviceSettings HKR Security entry
+    // instead of a runtime WDF call here. Keep the two in sync: see
+    // JochonaDisplayAdapter.inf and docs/PROTOCOL.md.
 
     WDF_PNPPOWER_EVENT_CALLBACKS pnpPowerCallbacks;
     WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPowerCallbacks);
@@ -911,7 +909,7 @@ NTSTATUS JochonaDeviceAdd(WDFDRIVER Driver, PWDFDEVICE_INIT pDeviceInit)
         iddConfig.EvtIddCxMonitorGetDefaultDescriptionModes = JochonaMonitorGetDefaultModes;
     }
 
-    status = IddCxDeviceInitConfig(pDeviceInit, &iddConfig);
+    NTSTATUS status = IddCxDeviceInitConfig(pDeviceInit, &iddConfig);
     if (!NT_SUCCESS(status))
     {
         return status;
