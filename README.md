@@ -65,6 +65,11 @@ For local test-signing and the SignPath-based release signing plan, see
 [`docs/SIGNING.md`](docs/SIGNING.md). No release script in this
 repository installs a self-signed root certificate.
 
+Tagged releases (`v*`) publish unsigned per-architecture build zips via
+`.github/workflows/release.yml` on the
+[Releases page](https://github.com/Jochona/jochona-display-adapter/releases) —
+see `docs/SIGNING.md` before installing one.
+
 ## Testing
 
 `tests/` builds and runs independently of the WDK (portable C++17, no
