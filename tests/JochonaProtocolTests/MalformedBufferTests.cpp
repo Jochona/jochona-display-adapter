@@ -17,6 +17,15 @@
 
 using namespace jochona::protocol;
 
+// GCC refuses to bind a reference directly to a field of a packed struct
+// (the address may be misaligned). Route each packed-field read through
+// this by-value helper before handing it to doctest's CHECK/REQUIRE macros.
+template <typename T>
+T val(T v)
+{
+    return v;
+}
+
 namespace {
 
 JochonaProtocolVersion V1()
@@ -54,7 +63,7 @@ TEST_CASE("ENUMERATE_SLOTS rejects a truncated input struct without touching the
     CHECK(result.status == JOCHONA_STATUS_BUFFER_TOO_SMALL);
     CHECK(result.bytesWritten == 0);
     // Output buffer must be left untouched: still the sentinel pattern.
-    CHECK(out.SlotCount == 0xCDCDCDCDu);
+    CHECK(val(out.SlotCount) == 0xCDCDCDCDu);
 }
 
 TEST_CASE("ENUMERATE_SLOTS rejects a truncated output struct")

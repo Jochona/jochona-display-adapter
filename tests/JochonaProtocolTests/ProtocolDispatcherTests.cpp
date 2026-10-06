@@ -14,6 +14,15 @@
 
 using namespace jochona::protocol;
 
+// GCC refuses to bind a reference directly to a field of a packed struct
+// (the address may be misaligned). Route each packed-field read through
+// this by-value helper before handing it to doctest's CHECK/REQUIRE macros.
+template <typename T>
+T val(T v)
+{
+    return v;
+}
+
 namespace {
 
 JochonaProtocolVersion V1()
@@ -32,8 +41,8 @@ TEST_CASE("Dispatch(GET_PROTOCOL_VERSION) returns the wire-identical version and
         IOCTL_JOCHONA_GET_PROTOCOL_VERSION, nullptr, 0, &out, sizeof(out), sm);
     CHECK(result.status == JOCHONA_STATUS_SUCCESS);
     CHECK(result.bytesWritten == sizeof(out));
-    CHECK(out.Version.Major == 1);
-    CHECK(out.Version.Minor == 0);
+    CHECK(val(out.Version.Major) == 1);
+    CHECK(val(out.Version.Minor) == 0);
 }
 
 TEST_CASE("Dispatch(ENUMERATE_SLOTS) round-trips through raw buffers")
@@ -44,8 +53,8 @@ TEST_CASE("Dispatch(ENUMERATE_SLOTS) round-trips through raw buffers")
     const auto result = Dispatch(
         IOCTL_JOCHONA_ENUMERATE_SLOTS, &in, sizeof(in), &out, sizeof(out), sm);
     CHECK(result.status == JOCHONA_STATUS_SUCCESS);
-    REQUIRE(out.SlotCount == 1);
-    CHECK(out.Slots[0].State == JochonaSlotStateFree);
+    REQUIRE(val(out.SlotCount) == 1);
+    CHECK(val(out.Slots[0].State) == JochonaSlotStateFree);
 }
 
 TEST_CASE("Dispatch drives the full LEASE -> CONFIGURE -> RELEASE cycle end to end")
@@ -127,7 +136,7 @@ TEST_CASE("Dispatch(GET_WATCHDOG / WATCHDOG_PING) reflects the leased slot's tim
         Dispatch(IOCTL_JOCHONA_GET_WATCHDOG, &wdIn, sizeof(wdIn), &wdOut, sizeof(wdOut), sm);
     CHECK(wdResult.status == JOCHONA_STATUS_SUCCESS);
     CHECK(wdOut.LeaseActive == 1);
-    CHECK(wdOut.TimeoutMilliseconds == sm.WatchdogTimeoutMilliseconds());
+    CHECK(val(wdOut.TimeoutMilliseconds) == sm.WatchdogTimeoutMilliseconds());
 
     JochonaWatchdogPingIn pingIn{V1(), 0, token};
     auto pingResult = Dispatch(IOCTL_JOCHONA_WATCHDOG_PING, &pingIn, sizeof(pingIn), nullptr, 0, sm);
